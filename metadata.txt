@@ -10,3 +10,6 @@ email=LeTuanAnhPk@gmail.com
 plugin_type=python
 about=Displays attachments from ArcGIS File Geodatabases using GDAL/OGR, maps relationships, shows previews.
 icon=icons/Identify.svg
+repository=https://github.com/tuananh0707/ArcGIS-Attachments-Reader
+tracker=https://github.com/tuananh0707/ArcGIS-Attachments-Reader/issues
+homepage=https://github.com/tuananh0707
