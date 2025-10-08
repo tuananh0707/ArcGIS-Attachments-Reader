@@ -1,0 +1,12 @@
+[general]
+name=ArcGisAttachmentsReader
+qgisMinimumVersion=3.22
+description=Read and display ArcGIS File Geodatabase attachments directly in QGIS
+version=0.1.0
+category=Vector
+tags=plugin, vector, ESRI, relationship, geodatabase, attachments
+author=Lê Tuấn Anh
+email=LeTuanAnhPk@gmail.com
+plugin_type=python
+about=Displays attachments from ArcGIS File Geodatabases using GDAL/OGR, maps relationships, shows previews.
+icon=icons/Identify.svg
