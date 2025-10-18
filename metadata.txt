@@ -2,7 +2,7 @@
 name=ArcGisAttachmentsReader
 qgisMinimumVersion=3.22
 description=Read and display ArcGIS File Geodatabase attachments directly in QGIS
-version=0.1.0
+version=0.2.0
 category=Vector
 tags=plugin, vector, ESRI, relationship, geodatabase, attachments
 author=Lê Tuấn Anh

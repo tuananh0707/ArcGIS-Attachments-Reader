@@ -8,6 +8,7 @@ ArcGisAttachmentsReader.py - QGIS plugin module
 - Bảng thuộc tính có màu xen kẽ và căn trái
 """
 
+import qgis.PyQt
 from qgis.PyQt.QtWidgets import (
     QAction, QWidget, QLabel, QVBoxLayout, QGroupBox,
     QHBoxLayout, QPushButton, QSizePolicy, QScrollArea,
@@ -15,14 +16,59 @@ from qgis.PyQt.QtWidgets import (
     QDockWidget
 )
 from qgis.PyQt.QtGui import (
-    QPixmap, QIcon, QCursor, QColor, QPalette, QDesktopServices
+    QPixmap, QIcon, QCursor, QColor, QPalette
 )
 from qgis.PyQt.QtCore import Qt, QPoint, QUrl, QByteArray
-from qgis.core import *
+
+# Handle Qt5/Qt6 compatibility
+QT_VERSION = int(qgis.PyQt.QtCore.QT_VERSION_STR.split('.')[0])
+if QT_VERSION >= 6:
+    from qgis.PyQt.QtCore import Qt
+    from qgis.PyQt.QtGui import QDesktopServices
+    # Qt6 alignment constants
+    ALIGN_LEFT = Qt.AlignmentFlag.AlignLeft
+    ALIGN_CENTER = Qt.AlignmentFlag.AlignCenter
+    ALIGN_VCENTER = Qt.AlignmentFlag.AlignVCenter
+    MOUSE_LEFT_BUTTON = Qt.MouseButton.LeftButton
+    KEY_ESCAPE = Qt.Key.Key_Escape
+    POINTING_HAND_CURSOR = Qt.CursorShape.PointingHandCursor
+    CLOSED_HAND_CURSOR = Qt.CursorShape.ClosedHandCursor
+    ARROW_CURSOR = Qt.CursorShape.ArrowCursor
+    TEXT_BROWSER_INTERACTION = Qt.TextInteractionFlag.TextBrowserInteraction
+    KEEP_ASPECT_RATIO = Qt.AspectRatioMode.KeepAspectRatio
+    SMOOTH_TRANSFORMATION = Qt.TransformationMode.SmoothTransformation
+    NO_EDIT_TRIGGERS = QTableWidget.EditTrigger.NoEditTriggers
+    SINGLE_SELECTION = QTableWidget.SelectionMode.SingleSelection
+    ITEM_IS_ENABLED = Qt.ItemFlag.ItemIsEnabled
+    ITEM_IS_SELECTABLE = Qt.ItemFlag.ItemIsSelectable
+else:
+    from qgis.PyQt.QtCore import Qt
+    from qgis.PyQt.QtGui import QDesktopServices
+    # Qt5 alignment constants
+    ALIGN_LEFT = Qt.AlignLeft
+    ALIGN_CENTER = Qt.AlignCenter
+    ALIGN_VCENTER = Qt.AlignVCenter
+    MOUSE_LEFT_BUTTON = Qt.LeftButton
+    KEY_ESCAPE = Qt.Key_Escape
+    POINTING_HAND_CURSOR = Qt.PointingHandCursor
+    CLOSED_HAND_CURSOR = Qt.ClosedHandCursor
+    ARROW_CURSOR = Qt.ArrowCursor
+    TEXT_BROWSER_INTERACTION = Qt.TextBrowserInteraction
+    KEEP_ASPECT_RATIO = Qt.KeepAspectRatio
+    SMOOTH_TRANSFORMATION = Qt.SmoothTransformation
+    NO_EDIT_TRIGGERS = QTableWidget.NoEditTriggers
+    SINGLE_SELECTION = QTableWidget.SingleSelection
+    ITEM_IS_ENABLED = Qt.ItemIsEnabled
+    ITEM_IS_SELECTABLE = Qt.ItemIsSelectable
+from qgis.core import (
+    QgsProject, QgsWkbTypes, QgsGeometry, QgsRectangle,
+    QgsFeatureRequest
+)
 from qgis.gui import QgsMapTool, QgsRubberBand, QgsVertexMarker
 from qgis.utils import iface
 import tempfile
 import os
+import sys
 
 class ArcGisAttachmentsReader:
     def __init__(self, iface):
@@ -360,7 +406,7 @@ class ArcGisAttachmentsReader:
 
         # --- Thumbnail area (if first attachment is image) ---
         thumb_label = QLabel()
-        thumb_label.setAlignment(Qt.AlignCenter)
+        thumb_label.setAlignment(ALIGN_CENTER)
         thumb_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         if attachments and len(attachments) > 0:
@@ -371,10 +417,10 @@ class ArcGisAttachmentsReader:
             if ext0 in (".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tif", ".tiff"):
                 pm = QPixmap()
                 if pm.loadFromData(data0):
-                    scaled = pm.scaledToWidth(420, Qt.SmoothTransformation)
+                    scaled = pm.scaledToWidth(420, SMOOTH_TRANSFORMATION)
                     thumb_label.setPixmap(scaled)
                     self.current_pixmap = pm
-                    thumb_label.setCursor(Qt.PointingHandCursor)
+                    thumb_label.setCursor(POINTING_HAND_CURSOR)
                     thumb_label.mousePressEvent = lambda e: self.show_full_image(self.current_pixmap)
                     thumb_label.setMinimumHeight(200)
                     layout.addWidget(thumb_label)
@@ -397,7 +443,7 @@ class ArcGisAttachmentsReader:
         # --- Files list (links) ---
         if attachments and len(attachments) > 0:
             files_label = QLabel()
-            files_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
+            files_label.setTextInteractionFlags(TEXT_BROWSER_INTERACTION)
             files_label.setOpenExternalLinks(False)
             files_label.setWordWrap(True)
             html_parts = ['<b>Files attachment:</b> ']
@@ -472,31 +518,59 @@ class ArcGisAttachmentsReader:
         # header left alignment
         table.setHorizontalHeaderLabels(["Field", "Value"])
         header = table.horizontalHeader()
-        header.setDefaultAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        header.setDefaultAlignment(ALIGN_LEFT | ALIGN_VCENTER)
 
-        # alternating row color via palette
+        # Cross-platform compatible styling
         table.setAlternatingRowColors(True)
-        pal = table.palette()
-        pal.setColor(QPalette.Base, QColor("#ffffff"))
-        pal.setColor(QPalette.AlternateBase, QColor("#f7faff"))
-        table.setPalette(pal)
-
-        table.setStyleSheet("""
-            QHeaderView::section {
-                background-color: #f0f0f0;
-                font-weight: bold;
-                padding: 4px;
-                border: 1px solid #ccc;
-            }
-            QTableWidget {
-                gridline-color: #e0e0e0;
-                font-size: 13px;
-            }
-        """)
+        
+        # Platform specific color handling
+        if sys.platform == 'darwin':  # macOS
+            table.setStyleSheet("""
+                QTableWidget {
+                    background-color: white;
+                    alternate-background-color: #f7faff;
+                    gridline-color: #e0e0e0;
+                    font-size: 13px;
+                    border: 1px solid #d0d0d0;
+                }
+                QTableWidget::item {
+                    border-bottom: 1px solid #e0e0e0;
+                    padding: 2px;
+                }
+                QHeaderView::section {
+                    background-color: #f0f0f0;
+                    font-weight: bold;
+                    padding: 4px;
+                    border: 1px solid #ccc;
+                    color: black;
+                }
+                QTableWidget::item:selected {
+                    background-color: #e0e9ff;
+                    color: black;
+                }
+            """)
+        else:  # Windows and other platforms
+            pal = table.palette()
+            pal.setColor(QPalette.Base, QColor("#ffffff"))
+            pal.setColor(QPalette.AlternateBase, QColor("#f7faff"))
+            table.setPalette(pal)
+            
+            table.setStyleSheet("""
+                QHeaderView::section {
+                    background-color: #f0f0f0;
+                    font-weight: bold;
+                    padding: 4px;
+                    border: 1px solid #ccc;
+                }
+                QTableWidget {
+                    gridline-color: #e0e0e0;
+                    font-size: 13px;
+                }
+            """)
 
         table.verticalHeader().setVisible(False)
-        table.setEditTriggers(QTableWidget.NoEditTriggers)
-        table.setSelectionMode(QTableWidget.SingleSelection)
+        table.setEditTriggers(NO_EDIT_TRIGGERS)
+        table.setSelectionMode(SINGLE_SELECTION)
         table.setWordWrap(True)
         table.horizontalHeader().setStretchLastSection(True)
         table.horizontalHeader().setDefaultSectionSize(180)
@@ -516,11 +590,11 @@ class ArcGisAttachmentsReader:
             key_item = QTableWidgetItem(str(field_name))
             val_item = QTableWidgetItem(str(value))
 
-            key_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-            val_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+            key_item.setTextAlignment(ALIGN_LEFT | ALIGN_VCENTER)
+            val_item.setTextAlignment(ALIGN_LEFT | ALIGN_VCENTER)
 
-            key_item.setFlags(Qt.ItemIsEnabled)
-            val_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+            key_item.setFlags(ITEM_IS_ENABLED)
+            val_item.setFlags(ITEM_IS_ENABLED | ITEM_IS_SELECTABLE)
 
             table.setItem(row, 0, key_item)
             table.setItem(row, 1, val_item)
@@ -581,14 +655,14 @@ class ArcGisAttachmentsReader:
                 self.layout = QVBoxLayout(self)
 
                 self.img_label = QLabel()
-                self.img_label.setAlignment(Qt.AlignCenter)
+                self.img_label.setAlignment(ALIGN_CENTER)
                 self.img_label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
                 self.img_label.setScaledContents(False)
 
                 self.scroll = QScrollArea()
                 self.scroll.setWidget(self.img_label)
                 self.scroll.setWidgetResizable(False)  
-                self.scroll.setAlignment(Qt.AlignCenter)
+                self.scroll.setAlignment(ALIGN_CENTER)
                 self.layout.addWidget(self.scroll)
 
                 self.toggle_btn = QPushButton("Fit")
@@ -615,12 +689,12 @@ class ArcGisAttachmentsReader:
                 if self._is_fit_mode:
                     area_size = self.scroll.viewport().size()
                     scaled = self._pixmap_original.scaled(
-                        area_size, Qt.KeepAspectRatio, Qt.SmoothTransformation
+                        area_size, KEEP_ASPECT_RATIO, SMOOTH_TRANSFORMATION
                     )
                 else:
                     size = self._pixmap_original.size() * self._scale_factor
                     scaled = self._pixmap_original.scaled(
-                        size, Qt.KeepAspectRatio, Qt.SmoothTransformation
+                        size, KEEP_ASPECT_RATIO, SMOOTH_TRANSFORMATION
                     )
 
                 self.img_label.setPixmap(scaled)
@@ -650,10 +724,10 @@ class ArcGisAttachmentsReader:
                 self.update_scaled_image()
 
             def mousePressEvent(self, event):
-                if not self._is_fit_mode and event.button() == Qt.LeftButton:
+                if not self._is_fit_mode and event.button() == MOUSE_LEFT_BUTTON:
                     self._panning = True
                     self._pan_start_point = event.pos()
-                    self.setCursor(Qt.ClosedHandCursor)
+                    self.setCursor(CLOSED_HAND_CURSOR)
                     event.accept()
 
             def mouseMoveEvent(self, event):
@@ -669,9 +743,9 @@ class ArcGisAttachmentsReader:
                     event.accept()
 
             def mouseReleaseEvent(self, event):
-                if self._panning and event.button() == Qt.LeftButton:
+                if self._panning and event.button() == MOUSE_LEFT_BUTTON:
                     self._panning = False
-                    self.setCursor(Qt.ArrowCursor)
+                    self.setCursor(ARROW_CURSOR)
                     event.accept()
 
         viewer = ImageViewer(pixmap)
@@ -730,7 +804,7 @@ class IdentifyAttachmentsTool(QgsMapTool):
          - Không unsetMapTool (tool vẫn active)
         """
         try:
-            if event.key() == Qt.Key_Escape:
+            if event.key() == KEY_ESCAPE:
                 # xóa highlight trên bản đồ
                 try:
                     self.plugin.clear_highlight()
@@ -759,7 +833,7 @@ class IdentifyAttachmentsTool(QgsMapTool):
         super().__init__(iface.mapCanvas())
         self.iface = iface
         self.plugin = plugin
-        self.setCursor(QCursor(Qt.PointingHandCursor))
+        self.setCursor(QCursor(POINTING_HAND_CURSOR))
 
     def canvasReleaseEvent(self, event):
         # map coordinate
