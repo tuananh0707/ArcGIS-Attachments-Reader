@@ -8,6 +8,109 @@ ArcGisAttachmentsReader.py - QGIS plugin module
 - Bảng thuộc tính có màu xen kẽ và căn trái
 """
 
+# Qt version compatibility
+import qgis.PyQt
+QT_VERSION = int(qgis.PyQt.QtCore.QT_VERSION_STR.split('.')[0])
+
+# Compatibility constants for Qt5/Qt6
+if QT_VERSION >= 6:
+    from qgis.PyQt.QtWidgets import QSizePolicy
+    from qgis.PyQt.QtCore import Qt
+    from qgis.PyQt.QtGui import QPalette
+    
+    # SizePolicy
+    SIZE_EXPANDING = QSizePolicy.Policy.Expanding
+    SIZE_FIXED = QSizePolicy.Policy.Fixed
+    SIZE_IGNORED = QSizePolicy.Policy.Ignored
+    
+    # Palette
+    PALETTE_BASE = QPalette.ColorRole.Base
+    PALETTE_ALTERNATE_BASE = QPalette.ColorRole.AlternateBase
+    PALETTE_WINDOW = QPalette.ColorRole.Window
+    
+    # Alignment
+    ALIGN_LEFT = Qt.AlignmentFlag.AlignLeft
+    ALIGN_CENTER = Qt.AlignmentFlag.AlignCenter
+    ALIGN_VCENTER = Qt.AlignmentFlag.AlignVCenter
+    ALIGN_TOP = Qt.AlignmentFlag.AlignTop
+    ALIGN_BOTTOM = Qt.AlignmentFlag.AlignBottom
+    
+    # Mouse and Key
+    MOUSE_LEFT_BUTTON = Qt.MouseButton.LeftButton
+    KEY_ESCAPE = Qt.Key.Key_Escape
+    
+    # Cursors
+    POINTING_HAND_CURSOR = Qt.CursorShape.PointingHandCursor
+    CLOSED_HAND_CURSOR = Qt.CursorShape.ClosedHandCursor
+    ARROW_CURSOR = Qt.CursorShape.ArrowCursor
+    
+    # Text Interaction
+    TEXT_BROWSER_INTERACTION = Qt.TextInteractionFlag.TextBrowserInteraction
+    
+    # Image Scaling
+    KEEP_ASPECT_RATIO = Qt.AspectRatioMode.KeepAspectRatio
+    SMOOTH_TRANSFORMATION = Qt.TransformationMode.SmoothTransformation
+    
+    # Item Flags
+    ITEM_IS_ENABLED = Qt.ItemFlag.ItemIsEnabled
+    ITEM_IS_SELECTABLE = Qt.ItemFlag.ItemIsSelectable
+    
+    # Dock Areas
+    DOCK_LEFT = Qt.DockWidgetArea.LeftDockWidgetArea
+    DOCK_RIGHT = Qt.DockWidgetArea.RightDockWidgetArea
+    
+    # Header Alignment
+    HEADER_ALIGN_LEFT = Qt.AlignmentFlag.AlignLeft
+    
+else:
+    from qgis.PyQt.QtWidgets import QSizePolicy
+    from qgis.PyQt.QtCore import Qt
+    from qgis.PyQt.QtGui import QPalette
+    
+    # Palette
+    PALETTE_BASE = QPalette.Base
+    PALETTE_ALTERNATE_BASE = QPalette.AlternateBase
+    PALETTE_WINDOW = QPalette.Window
+    
+    # SizePolicy
+    SIZE_EXPANDING = QSizePolicy.Expanding
+    SIZE_FIXED = QSizePolicy.Fixed
+    SIZE_IGNORED = QSizePolicy.Ignored
+    
+    # Alignment
+    ALIGN_LEFT = Qt.AlignLeft
+    ALIGN_CENTER = Qt.AlignCenter
+    ALIGN_VCENTER = Qt.AlignVCenter
+    ALIGN_TOP = Qt.AlignTop
+    ALIGN_BOTTOM = Qt.AlignBottom
+    
+    # Mouse and Key
+    MOUSE_LEFT_BUTTON = Qt.LeftButton
+    KEY_ESCAPE = Qt.Key_Escape
+    
+    # Cursors
+    POINTING_HAND_CURSOR = Qt.PointingHandCursor
+    CLOSED_HAND_CURSOR = Qt.ClosedHandCursor
+    ARROW_CURSOR = Qt.ArrowCursor
+    
+    # Text Interaction
+    TEXT_BROWSER_INTERACTION = Qt.TextBrowserInteraction
+    
+    # Image Scaling
+    KEEP_ASPECT_RATIO = Qt.KeepAspectRatio
+    SMOOTH_TRANSFORMATION = Qt.SmoothTransformation
+    
+    # Item Flags
+    ITEM_IS_ENABLED = Qt.ItemIsEnabled
+    ITEM_IS_SELECTABLE = Qt.ItemIsSelectable
+    
+    # Dock Areas
+    DOCK_LEFT = Qt.LeftDockWidgetArea
+    DOCK_RIGHT = Qt.RightDockWidgetArea
+    
+    # Header Alignment
+    HEADER_ALIGN_LEFT = Qt.AlignLeft
+
 import qgis.PyQt
 from qgis.PyQt.QtWidgets import (
     QAction, QWidget, QLabel, QVBoxLayout, QGroupBox,
@@ -388,10 +491,13 @@ class ArcGisAttachmentsReader:
         if not self.dock:
             self.dock = QDockWidget("Identify - ArcGIS Attachments", self.iface.mainWindow())
             self.dock.setObjectName("ArcGisAttachmentsDock")
-            self.dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+            
+            # Use version-independent dock area constants
+            self.dock.setAllowedAreas(DOCK_LEFT | DOCK_RIGHT)
+            
             # ensure highlight cleared when dock closed
             self.dock.visibilityChanged.connect(lambda visible: (self.clear_highlight() if not visible else None))
-            self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dock)
+            self.iface.addDockWidget(DOCK_RIGHT, self.dock)
 
         # container widget
         container = QWidget()
@@ -407,7 +513,7 @@ class ArcGisAttachmentsReader:
         # --- Thumbnail area (if first attachment is image) ---
         thumb_label = QLabel()
         thumb_label.setAlignment(ALIGN_CENTER)
-        thumb_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        thumb_label.setSizePolicy(SIZE_EXPANDING, SIZE_FIXED)
 
         if attachments and len(attachments) > 0:
             first = attachments[0]
@@ -518,55 +624,51 @@ class ArcGisAttachmentsReader:
         # header left alignment
         table.setHorizontalHeaderLabels(["Field", "Value"])
         header = table.horizontalHeader()
-        header.setDefaultAlignment(ALIGN_LEFT | ALIGN_VCENTER)
+        header.setDefaultAlignment(HEADER_ALIGN_LEFT | ALIGN_VCENTER)
 
-        # Cross-platform compatible styling
+        # Unified styling for all platforms and Qt versions
         table.setAlternatingRowColors(True)
         
-        # Platform specific color handling
-        if sys.platform == 'darwin':  # macOS
-            table.setStyleSheet("""
-                QTableWidget {
-                    background-color: white;
-                    alternate-background-color: #f7faff;
-                    gridline-color: #e0e0e0;
-                    font-size: 13px;
-                    border: 1px solid #d0d0d0;
-                }
-                QTableWidget::item {
-                    border-bottom: 1px solid #e0e0e0;
-                    padding: 2px;
-                }
-                QHeaderView::section {
-                    background-color: #f0f0f0;
-                    font-weight: bold;
-                    padding: 4px;
-                    border: 1px solid #ccc;
-                    color: black;
-                }
-                QTableWidget::item:selected {
-                    background-color: #e0e9ff;
-                    color: black;
-                }
-            """)
-        else:  # Windows and other platforms
-            pal = table.palette()
-            pal.setColor(QPalette.Base, QColor("#ffffff"))
-            pal.setColor(QPalette.AlternateBase, QColor("#f7faff"))
-            table.setPalette(pal)
-            
-            table.setStyleSheet("""
-                QHeaderView::section {
-                    background-color: #f0f0f0;
-                    font-weight: bold;
-                    padding: 4px;
-                    border: 1px solid #ccc;
-                }
-                QTableWidget {
-                    gridline-color: #e0e0e0;
-                    font-size: 13px;
-                }
-            """)
+        # Set base colors using both palette and stylesheet for maximum compatibility
+        pal = table.palette()
+        pal.setColor(PALETTE_BASE, QColor("#ffffff"))
+        pal.setColor(PALETTE_ALTERNATE_BASE, QColor("#f7faff"))
+        table.setPalette(pal)
+
+        # Universal stylesheet that works on all platforms
+        table.setStyleSheet("""
+            QTableWidget {
+                background-color: #ffffff;
+                alternate-background-color: #f7faff;
+                gridline-color: #e0e0e0;
+                font-size: 13px;
+                border: 1px solid #d0d0d0;
+                selection-background-color: #e0e9ff;
+                selection-color: black;
+            }
+            QTableWidget::item {
+                border-bottom: 1px solid #e0e0e0;
+                padding: 2px;
+                color: black;
+            }
+            QTableWidget::item:alternate {
+                background-color: #f7faff;
+            }
+            QHeaderView::section {
+                background-color: #f0f0f0;
+                color: black;
+                font-weight: bold;
+                padding: 4px;
+                border: 1px solid #ccc;
+            }
+            QHeaderView {
+                background-color: #f0f0f0;
+            }
+            QTableWidget::item:selected {
+                background-color: #e0e9ff;
+                color: black;
+            }
+        """)
 
         table.verticalHeader().setVisible(False)
         table.setEditTriggers(NO_EDIT_TRIGGERS)
@@ -656,7 +758,7 @@ class ArcGisAttachmentsReader:
 
                 self.img_label = QLabel()
                 self.img_label.setAlignment(ALIGN_CENTER)
-                self.img_label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+                self.img_label.setSizePolicy(SIZE_IGNORED, SIZE_IGNORED)
                 self.img_label.setScaledContents(False)
 
                 self.scroll = QScrollArea()
@@ -702,12 +804,17 @@ class ArcGisAttachmentsReader:
 
             def wheelEvent(self, event):
                 if self._is_fit_mode:
-                    
                     self._is_fit_mode = False
                     self.toggle_btn.setText("Fit")
 
+                # Qt6 compatible wheel delta
+                if QT_VERSION >= 6:
+                    delta = event.angleDelta().y()
+                else:
+                    delta = event.angleDelta().y()
+
                 # Zoom in/out 15%
-                if event.angleDelta().y() > 0:
+                if delta > 0:
                     self._scale_factor *= 1.15
                 else:
                     self._scale_factor /= 1.15
@@ -717,11 +824,6 @@ class ArcGisAttachmentsReader:
 
                 self.update_scaled_image()
                 event.accept()
-
-
-            def set_one_to_one(self):
-                self._is_fit_mode = False
-                self.update_scaled_image()
 
             def mousePressEvent(self, event):
                 if not self._is_fit_mode and event.button() == MOUSE_LEFT_BUTTON:
@@ -749,7 +851,11 @@ class ArcGisAttachmentsReader:
                     event.accept()
 
         viewer = ImageViewer(pixmap)
-        viewer.exec_()
+        # Qt6 compatible dialog execution
+        if QT_VERSION >= 6:
+            viewer.exec()
+        else:
+            viewer.exec_()
 
     def clear_results_panel(self):
         """
@@ -771,7 +877,7 @@ class ArcGisAttachmentsReader:
             placeholder = QWidget()
             ph_layout = QVBoxLayout(placeholder)
             lbl = QLabel("Không có đối tượng được chọn.")
-            lbl.setAlignment(Qt.AlignCenter)
+            lbl.setAlignment(ALIGN_CENTER)
             lbl.setStyleSheet("color: gray; font-style: italic;")
             ph_layout.addStretch()
             ph_layout.addWidget(lbl)
